@@ -9,9 +9,9 @@ var mysql    = require('mysql');
 
 var db = mysql.createConnection({
     host:'localhost',
-    user:'unicorn',
-    password:'unicorn2015!',
-    database:'unicorn',
+    user:'user',
+    password:'password',
+    database:'database',
     multipleStatements: true
 });
 
@@ -20,13 +20,13 @@ const postSelect = ``;
 
 /* AES encrypt function */
 function encryptFunc(val){
-  let query = `TO_BASE64(AES_ENCRYPT('${val}', 'pE##yCrM^'))`;
+  let query = `TO_BASE64(AES_ENCRYPT('${val}', '암호화키'))`;
   return query;
 }
 
 /* AES decrypt function */
 function decryptFunc(columnName){
-  let query = `CAST(AES_DECRYPT(FROM_BASE64(${columnName}), 'pE##yCrM^') AS CHAR)`;
+  let query = `CAST(AES_DECRYPT(FROM_BASE64(${columnName}), '암호화키') AS CHAR)`;
   return query;
 }
 
