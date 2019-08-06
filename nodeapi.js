@@ -25,9 +25,9 @@ const fs    = require('fs');
 // Database
 /*var db = mysql.createConnection({
     host:'localhost',
-    user:'unicorn',
-    password:'unicorn2015!',
-    database:'unicorn'
+    user:'user',
+    password:'password!',
+    database:'database'
 });*/
 
 /** Middlewares */
@@ -61,17 +61,17 @@ var port = 3000;
 app.listen(port, function(){
   console.log('listening on port:' + port);
 })
-*/
 
 const privateKey = fs.readFileSync('./ssl/privkey.pem', 'utf8');
 const certificate = fs.readFileSync('./ssl/cert.pem', 'utf8');
 const ca = fs.readFileSync('./ssl/chain.pem', 'utf8');
 
 const credentials = {
-	key: privateKey,
+  key: privateKey,
 	cert: certificate,
 	ca: ca
 };
+ */
 
 const httpServer = http.createServer(app);
 //const httpsServer = https.createServer(credentials, app);
