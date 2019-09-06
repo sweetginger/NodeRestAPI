@@ -1,12 +1,14 @@
 /*
-*   Pelly CRM REST API
-*   @author hyr
-*/
+ *   Pelly CRM REST API
+ *   ---> USE MYSQL
+ *   @author hyr
+ */
 
-var express  = require('express');
-var router   = express.Router();
-var mysql    = require('mysql');
+var express = require('express');
+var router = express.Router();
+var mysql = require('mysql');
 
+/*
 var db = mysql.createConnection({
     host:'localhost',
     user:'user',
@@ -14,18 +16,23 @@ var db = mysql.createConnection({
     database:'database',
     multipleStatements: true
 });
+*/
+
+var db = mysql.createConnection({
+  //
+});
 
 const preSelect = ``;
 const postSelect = ``;
 
 /* AES encrypt function */
-function encryptFunc(val){
+function encryptFunc(val) {
   let query = `TO_BASE64(AES_ENCRYPT('${val}', '암호화키'))`;
   return query;
 }
 
 /* AES decrypt function */
-function decryptFunc(columnName){
+function decryptFunc(columnName) {
   let query = `CAST(AES_DECRYPT(FROM_BASE64(${columnName}), '암호화키') AS CHAR)`;
   return query;
 }
@@ -33,10 +40,14 @@ function decryptFunc(columnName){
 // ------------------------------------------------ hyr cms query start -------------
 
 /* ----- test api ----- */
-/* 원하는 컬럼 및 조건 요청하여 결과받기 테스트 */ 
+/* 원하는 컬럼 및 조건 요청하여 결과받기 테스트 */
 router.post('/testList',
-  function(req, res, next){
-    let result = {result: false, message: 'error', items: []};
+  function (req, res, next) {
+    let result = {
+      result: false,
+      message: 'error',
+      items: []
+    };
 
     console.log(`@@@ req.body.selectColumns --> ${req.body.selectColumns}`);
 
@@ -46,18 +57,18 @@ router.post('/testList',
                         ,regUser
                     FROM cms_article3`;
     let query = `SELECT `;
-    for(let i=0; i<req.body.selectColumns.length; i++){
+    for (let i = 0; i < req.body.selectColumns.length; i++) {
       query += req.body.selectColumns[i];
-      if(i < req.body.selectColumns.length - 1){
+      if (i < req.body.selectColumns.length - 1) {
         query += `, `;
       }
     }
     query += ` FROM cms_article3 `;
 
     // whereColumns 객체에 키가 존재하면 where절을 추가한다.
-    if(Object.keys(req.body.whereColumns).length){
+    if (Object.keys(req.body.whereColumns).length) {
       query += `WHERE 1=1 `;
-      for(let i in req.body.whereColumns){
+      for (let i in req.body.whereColumns) {
         query += `AND ${i} = ${req.body.whereColumns[i]} `;
       }
     }
@@ -65,8 +76,8 @@ router.post('/testList',
     console.log(`@@@@ TEST API QUERY --> ${query}`);
 
     db.query(query,
-      function(err, rows, fields){
-        if(!err){
+      function (err, rows, fields) {
+        if (!err) {
           result.result = true;
           result.message = 'success';
           result.items = rows;
@@ -81,10 +92,13 @@ router.post('/testList',
 );
 
 /* ----- test ----- */
-router.get('/index', function(req, res, next){
-    const result = {msg: "hello yurim", result: true};
+router.get('/index', function (req, res, next) {
+  const result = {
+    msg: "hello yurim",
+    result: true
+  };
 
-    res.status(200).json(result);
+  res.status(200).json(result);
 });
 
 
