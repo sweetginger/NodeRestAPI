@@ -165,7 +165,7 @@ router.get('/getTest', function (req, res, next) {
     );
 });
 
-/** 관리자화면 - 설문등록수정 MERGE PROMISE -- return 방식 */
+/** 관리자화면 - 설문등록수정 MERGE PROMISE -- return 방식 -- 최종완료 */
 router.post('/survey1', function (req, res, next) {
     let result = {
         result: false,
@@ -176,7 +176,8 @@ router.post('/survey1', function (req, res, next) {
     const title = req.body.title;
     const content = req.body.content;
     const tenantId = req.body.tenantId;
-    let surveySeq = null;
+    const useYn = req.body.useYn == true ? 'Y' : 'N';
+    let surveySeq = 0;
 
     let insertData = [];
 
@@ -201,41 +202,43 @@ router.post('/survey1', function (req, res, next) {
                     title = ?,
                     content = ?,
                     tenantId = ?,
+                    useYn = ?,
                     updDt = NOW()`;
-    insertData.push(`${title}`);
-    insertData.push(`${content}`);
-    insertData.push(`${tenantId}`);
+    insertData.push(title);
+    insertData.push(content);
+    insertData.push(tenantId);
+    insertData.push(useYn);
 
     if (req.body.surveySeq > 0) {
-        query += `, surveySeq = ${req.body.surveySeq}`;
-        insertData.push(`${req.body.surveySeq}`);
+        query += `, surveySeq = ?`;
+        insertData.push(surveySeq);
     }
     query += `;`;
 
-    console.log(`master query ---> ${query}`);
-    console.log(`master insertData ---> ${JSON.stringify(insertData)}`);
     db.promise().query(query, insertData)
         .then(
             (results) => {
-                console.log(`eeeeeeeee`);
-                console.log(`master results = ${JSON.stringify(results)}`);
+                // console.log(`master results = ${JSON.stringify(results)}`);
                 surveySeq = surveySeq ? surveySeq : results[0].insertId;
+                // console.log(`master insert 후 insertId = ${surveySeq}`);
+
+                query = ``;
+                insertData = [];
 
                 // 설문문항이 있을 경우
                 if (req.body.question.length > 0) {
-                    query = ``;
-                    insertData = [];
 
                     query += `/* 설문 문항 MERGE */`;
                     for (let i in req.body.question) {
-                        // let questionSeq = `${req.body.result[i].questionSeq}`;
-                        let question = req.body.question[i];
-                        let questionSeq = null;
+                        query = ``;
+                        insertData = [];
 
-                        // TODO :: 설문문항 루프 돌면서 머지
+                        let question = req.body.question[i];
+                        let questionSeq = 0;
+
                         query += `INSERT INTO survey_question(surveySeq, title, type, tenantId`;
 
-                        if (question.questionSeq) {
+                        if (question.questionSeq * 1 > 0) {
                             query += `, questionSeq`;
                         }
 
@@ -245,7 +248,7 @@ router.post('/survey1', function (req, res, next) {
                         insertData.push(question.type);
                         insertData.push(tenantId);
 
-                        if (question.questionSeq) {
+                        if (question.questionSeq * 1 > 0) {
                             query += `, ?`;
                             insertData.push(question.questionSeq);
                             questionSeq = question.questionSeq;
@@ -255,34 +258,41 @@ router.post('/survey1', function (req, res, next) {
                                 surveySeq = ?,
                                 title = ?,
                                 type = ?,
-                                tenantId = ?`;
+                                tenantId = ?,
+                                useYn = ?;`;
 
                         insertData.push(surveySeq);
                         insertData.push(question.title);
                         insertData.push(question.type);
                         insertData.push(tenantId);
+                        insertData.push(question.useYn);
 
-                        console.log(`question query ---> ${query}`);
-                        console.log(`question insertData ---> ${JSON.stringify(insertData)}`);
-                        return db.promise().query(query, insertData)
+                        db.promise().query(query, insertData)
                             .then(
                                 (results) => {
-                                    console.log(`question results = ${JSON.stringify(results)}`);
-                                    questionSeq = questionSeq ? questionSeq : results[0].insertId;
+                                    // console.log(`question results = ${JSON.stringify(results)}`);
+
+                                    query = ``;
+                                    insertData = [];
 
                                     // 답변항목이 있을 경우
                                     if (question.answer.length > 0) {
-                                        query = ``;
-                                        insertData = [];
 
                                         query += `/* 답변 항목 MERGE */`;
                                         for (let j in question.answer) {
+
+                                            query = ``;
+                                            insertData = [];
+
+                                            questionSeq = questionSeq ? questionSeq : results[0].insertId;
+                                            // console.log(`question insert 후 insertId = ${questionSeq}`);
+
                                             let answer = question.answer[j];
-                                            let answerSeq = null;
+                                            let answerSeq = 0;
 
                                             query += `INSERT INTO survey_answer(questionSeq, title, value, tenantId`;
 
-                                            if (answer.answerSeq) {
+                                            if (answer.answerSeq * 1 > 0) {
                                                 query += `, answerSeq`;
                                             }
 
@@ -292,7 +302,7 @@ router.post('/survey1', function (req, res, next) {
                                             insertData.push(answer.value);
                                             insertData.push(tenantId);
 
-                                            if (answer.answerSeq) {
+                                            if (answer.answerSeq * 1 > 0) {
                                                 query += `, ?`;
                                                 insertData.push(answer.answerSeq);
                                                 answerSeq = answer.answerSeq;
@@ -302,21 +312,23 @@ router.post('/survey1', function (req, res, next) {
                                                 questionSeq = ?,
                                                 title = ?,
                                                 value = ?,
-                                                tenantId = ?`;
+                                                tenantId = ?,
+                                                useYn = ?;`;
 
                                             insertData.push(questionSeq);
                                             insertData.push(answer.title);
                                             insertData.push(answer.value);
                                             insertData.push(tenantId);
+                                            insertData.push(answer.useYn);
 
-                                            console.log(`answer  query ---> ${query}`);
-                                            console.log(`answer insertData ---> ${JSON.stringify(insertData)}`);
+                                            // console.log(`answer insertData ---> ${JSON.stringify(insertData)}`);
 
-                                            return db.promise().query(query, insertData)
+                                            db.promise().query(query, insertData)
                                                 .then(
                                                     (results) => {
-                                                        console.log(`answer results = ${JSON.stringify(results)}`);
-                                                        console.log(`answer insert key = ${results[0].insertId}`);
+                                                        // console.log(`answer results = ${JSON.stringify(results)}`);
+                                                        // console.log(`answer insert key = ${results[0].insertId}`);
+                                                        // console.log(`answer insert 후 insertId = ${answerSeq}`);
                                                         result = {
                                                             result: true,
                                                             message: 'success',
@@ -335,28 +347,7 @@ router.post('/survey1', function (req, res, next) {
                                 console.log(err);
                                 return err;
                             });
-
-                        /*
-                        db.query(query, insertData, function (err, result, fields) {
-                            console.log(`@@@ insertData =`);
-                            for (let k = 0; k < insertData.length; k++) {
-                                console.log(`${insertData[k]},`);
-                            }
-                            
-                            console.log(`@@@ insert survey_result query ---> ${query}`);
-                            if (err) {
-                                console.log(err);
-                                queryResult.error = err;
-                                resultMap.items.error++;
-                            }
-                            resultMap.items.success += result.affectedRows;
-                            console.log(`result.affectedRows = ${result.affectedRows}`);
-                            
-                        });
-                        */
-
                     }
-
                 }
             })
         .catch(err => {
@@ -365,328 +356,7 @@ router.post('/survey1', function (req, res, next) {
         });
 
     return res.json(result);
-
 });
-
-
-/** 관리자화면 - 설문등록수정 MERGE PROMISE -- await 방식 */
-router.post('/survey', async function (req, res, next) {
-    let result = {
-        result: false,
-        message: 'error',
-        items: {}
-    };
-
-    const title = req.body.title;
-    const content = req.body.content;
-    const tenantId = req.body.tenantId;
-    let surveySeq = null;
-
-    let insertData = [];
-
-    let query = `/* 설문 마스터 MERGE */
-                 INSERT INTO survey_master(title, content, tenantId, regDt`;
-
-    if (req.body.surveySeq > 0) {
-        query += `, surveySeq`;
-    }
-
-    query += `) VALUES(?, ?, ?, NOW()`;
-    insertData.push(`${title}`);
-    insertData.push(`${content}`);
-    insertData.push(`${tenantId}`);
-
-    if (req.body.surveySeq > 0) {
-        query += `, ?`;
-        surveySeq = req.body.surveySeq;
-        insertData.push(`${req.body.surveySeq}`);
-    }
-    query += `) ON DUPLICATE KEY UPDATE
-                    title = ?,
-                    content = ?,
-                    tenantId = ?,
-                    updDt = NOW()`;
-    insertData.push(`${title}`);
-    insertData.push(`${content}`);
-    insertData.push(`${tenantId}`);
-
-    if (req.body.surveySeq > 0) {
-        query += `, surveySeq = ${req.body.surveySeq}`;
-        insertData.push(`${req.body.surveySeq}`);
-    }
-    query += `;`;
-
-    // console.log(`master query ---> ${query}`);
-    // console.log(`master insertData ---> ${JSON.stringify(insertData)}`);
-
-    const [rows] = await promiseDb.execute(query, insertData);
-
-    console.log('[rows] = ' + JSON.stringify([rows]));
-
-    // db.promise().query(query, insertData)
-    //     .then(
-    //         (results) => {
-    //             console.log(`eeeeeeeee`);
-    //             console.log(`master results = ${JSON.stringify(results)}`);
-    //             surveySeq = surveySeq ? surveySeq : results[0].insertId;
-
-    //             // 설문문항이 있을 경우
-    //             if (req.body.question.length > 0) {
-    //                 query = ``;
-    //                 insertData = [];
-
-    //                 query += `/* 설문 문항 MERGE */`;
-    //                 for (let i in req.body.question) {
-    //                     // let questionSeq = `${req.body.result[i].questionSeq}`;
-    //                     let question = req.body.question[i];
-    //                     let questionSeq = null;
-
-    //                     // TODO :: 설문문항 루프 돌면서 머지
-    //                     query += `INSERT INTO survey_question(surveySeq, title, type, tenantId`;
-
-    //                     if (question.questionSeq) {
-    //                         query += `, questionSeq`;
-    //                     }
-
-    //                     query += `) VALUES(?, ?, ?, ?`;
-    //                     insertData.push(surveySeq);
-    //                     insertData.push(question.title);
-    //                     insertData.push(question.type);
-    //                     insertData.push(tenantId);
-
-    //                     if (question.questionSeq) {
-    //                         query += `, ?`;
-    //                         insertData.push(question.questionSeq);
-    //                         questionSeq = question.questionSeq;
-    //                     }
-
-    //                     query += `) ON DUPLICATE KEY UPDATE
-    //                             surveySeq = ?,
-    //                             title = ?,
-    //                             type = ?,
-    //                             tenantId = ?`;
-
-    //                     insertData.push(surveySeq);
-    //                     insertData.push(question.title);
-    //                     insertData.push(question.type);
-    //                     insertData.push(tenantId);
-
-    //                     console.log(`question query ---> ${query}`);
-    //                     console.log(`question insertData ---> ${JSON.stringify(insertData)}`);
-    //                     return db.promise().query(query, insertData)
-    //                         .then(
-    //                             (results) => {
-    //                                 console.log(`question results = ${JSON.stringify(results)}`);
-    //                                 questionSeq = questionSeq ? questionSeq : results[0].insertId;
-
-    //                                 // 답변항목이 있을 경우
-    //                                 if (question.answer.length > 0) {
-    //                                     query = ``;
-    //                                     insertData = [];
-
-    //                                     query += `/* 답변 항목 MERGE */`;
-    //                                     for (let j in question.answer) {
-    //                                         let answer = question.answer[j];
-    //                                         let answerSeq = null;
-
-    //                                         query += `INSERT INTO survey_answer(questionSeq, title, value, tenantId`;
-
-    //                                         if (answer.answerSeq) {
-    //                                             query += `, answerSeq`;
-    //                                         }
-
-    //                                         query += `) VALUES(?, ?, ?, ?`;
-    //                                         insertData.push(questionSeq);
-    //                                         insertData.push(answer.title);
-    //                                         insertData.push(answer.value);
-    //                                         insertData.push(tenantId);
-
-    //                                         if (answer.answerSeq) {
-    //                                             query += `, ?`;
-    //                                             insertData.push(answer.answerSeq);
-    //                                             answerSeq = answer.answerSeq;
-    //                                         }
-
-    //                                         query += `) ON DUPLICATE KEY UPDATE
-    //                                             questionSeq = ?,
-    //                                             title = ?,
-    //                                             value = ?,
-    //                                             tenantId = ?`;
-
-    //                                         insertData.push(questionSeq);
-    //                                         insertData.push(answer.title);
-    //                                         insertData.push(answer.value);
-    //                                         insertData.push(tenantId);
-
-    //                                         console.log(`answer  query ---> ${query}`);
-    //                                         console.log(`answer insertData ---> ${JSON.stringify(insertData)}`);
-
-    //                                         return db.promise().query(query, insertData)
-    //                                             .then(
-    //                                                 (results) => {
-    //                                                     console.log(`answer results = ${JSON.stringify(results)}`);
-    //                                                     console.log(`answer insert key = ${results[0].insertId}`);
-    //                                                     result = {
-    //                                                         result: true,
-    //                                                         message: 'success',
-    //                                                         items: {}
-    //                                                     };
-    //                                                 })
-    //                                             .catch(err => {
-    //                                                 console.log(err);
-    //                                                 return err;
-    //                                             });
-
-    //                                     }
-    //                                 }
-    //                             })
-    //                         .catch(err => {
-    //                             console.log(err);
-    //                             return err;
-    //                         });
-
-    //                     /*
-    //                     db.query(query, insertData, function (err, result, fields) {
-    //                         console.log(`@@@ insertData =`);
-    //                         for (let k = 0; k < insertData.length; k++) {
-    //                             console.log(`${insertData[k]},`);
-    //                         }
-
-    //                         console.log(`@@@ insert survey_result query ---> ${query}`);
-    //                         if (err) {
-    //                             console.log(err);
-    //                             queryResult.error = err;
-    //                             resultMap.items.error++;
-    //                         }
-    //                         resultMap.items.success += result.affectedRows;
-    //                         console.log(`result.affectedRows = ${result.affectedRows}`);
-
-    //                     });
-    //                     */
-
-    //                 }
-
-    //             }
-    //         })
-    //     .catch(err => {
-    //         console.log(err);
-    //         return err;
-    //     });
-
-    return res.json(result);
-
-});
-
-
-/*
- * 관리자 화면 - 설문 등록수정 MERGE
- */
-router.post('/survey0',
-    function (req, res, next) {
-        let result = {
-            result: false,
-            message: 'error',
-            items: {}
-        };
-
-        const title = req.body.title;
-        const content = req.body.content;
-        const tenantId = req.body.tenantId;
-
-        let insertData = [];
-
-        let query = `/* 설문 마스터 MERGE */
-                 INSERT INTO survey_master(title, content, tenantId, regDt`;
-
-        if (req.body.surveySeq) {
-            query += `, surveySeq`;
-        }
-
-        query += `) VALUES(?, ?, ?, NOW()`;
-        insertData.push(`'${title}'`);
-        insertData.push(`'${content}'`);
-        insertData.push(`${tenantId}`);
-
-        if (req.body.surveySeq) {
-            query += `, ?`;
-            insertData.push(`${req.body.surveySeq}`);
-        }
-        query += `) ON DUPLICATE KEY UPDATE
-                    title = ?,
-                    content = ?,
-                    tenantId = ?,
-                    updDt = NOW()`;
-        insertData.push(`'${title}'`);
-        insertData.push(`'${content}'`);
-        insertData.push(`${tenantId}`);
-
-        if (req.body.surveySeq) {
-            query += `, surveySeq = ${req.body.surveySeq}`;
-            insertData.push(`${req.body.surveySeq}`);
-        }
-        query += `;`;
-
-        if (req.body.question.length > 0) {
-            query += `/* 설문 문항 MERGE */`;
-
-            for (let i in req.body.question) {
-                let questionSeq = `${req.body.result[i].questionSeq}`;
-                // TODO :: 설문문항 루프 돌면서 머지
-                query += `INSERT INTO survey_question(surveySeq, title, type, tenantId`;
-
-                if (req.body.questionSeq) {
-                    query += `, questionSeq`;
-                }
-
-                query += `) VALUES(?, ?, ?, ?`;
-
-                if (req.body.questionSeq) {
-                    query += `, ?`;
-                }
-
-                query += `) ON DUPLICATE KEY UPDATE
-                    surveySeq = ?,
-                    title = ?,
-                    type = ?,
-                    tenantId = ?
-                    `;
-
-
-
-                db.query(query, insertData, function (err, result, fields) {
-                    console.log(`@@@ insertData =`);
-                    for (let k = 0; k < insertData.length; k++) {
-                        console.log(`${insertData[k]},`);
-                    }
-
-                    console.log(`@@@ insert survey_result query ---> ${query}`);
-                    if (err) {
-                        console.log(err);
-                        queryResult.error = err;
-                        resultMap.items.error++;
-                    }
-                    resultMap.items.success += result.affectedRows;
-                    console.log(`result.affectedRows = ${result.affectedRows}`);
-
-                });
-            }
-        }
-
-        if (resultMap.items.error > 0) {
-            console.log(err);
-            res.json({
-                error: queryResult.error,
-                ...resultMap
-            });
-            // res.json({result: false, message: 'error', error: err});
-        } else {
-            resultMap.result = true;
-            resultMap.message = 'success';
-            res.json(resultMap);
-        }
-
-    }
-);
 
 /* ----- test api ----- */
 /* 원하는 컬럼 및 조건 요청하여 결과받기 테스트 */
