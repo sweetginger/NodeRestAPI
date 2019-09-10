@@ -10,15 +10,26 @@ var mysql = require('mysql2');
 var promise = require('mysql2/promise');
 
 var db = mysql.createConnection({
-    //
+    host: '',
+    user: '',
+    password: '',
+    database: '',
+    multipleStatements: true,
+    debug: true
 });
 
 var pool = promise.createPool({
-    //
+    host: '',
+    user: '',
+    password: '',
+    database: ''
 });
 
 var promiseDb = promise.createConnection({
-    //
+    host: '',
+    user: '',
+    password: '',
+    database: ''
 });
 
 const preSelect = ``;
